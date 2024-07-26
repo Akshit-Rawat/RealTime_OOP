@@ -2,19 +2,19 @@ import sys
 from python_banyan.banyan_base import BanyanBase
 
 import matplotlib.pyplot as plt
-import time
+from buffers_1 import CircBuff
 
 
 
 class BuffClient(BanyanBase):
     def __init__(self):
 
-        super().__init__(process_name = 'BuffClient',receive_loop_idle_addition=self.idle_loop)
+        super().__init__(process_name = 'BuffClient',receive_loop_idle_addition=None)
         
         
         # data creation 
         self.set_subscriber_topic('plotting')
-        
+        self.buffclient = CircBuff(10)
         self.clientplot = []
         self.data_size = 10
         self.publish_payload({'data_size':self.data_size},'initiation')
@@ -32,14 +32,7 @@ class BuffClient(BanyanBase):
         x = payload['data']
         plt.plot(x)
         
-    def idle_loop(self):
-        
-        
-        time.sleep(2)
-        
-        self.publish_payload({'data_size':self.data_size},'initiation')
-        self.receive_loop()
-        self.incoming_message_processing(self)
+    
         
         
         #input('Press enter to exit.')

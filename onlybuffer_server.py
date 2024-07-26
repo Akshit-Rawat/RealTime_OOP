@@ -3,7 +3,7 @@ from python_banyan.banyan_base import BanyanBase
 import numpy as np
 import random
 import time
-#from buffers_1 import CircBuff
+from buffers_1 import CircBuff
 
 class BuffServer(BanyanBase):
     def __init__(self):
@@ -21,10 +21,10 @@ class BuffServer(BanyanBase):
             sys.exit()
 
     def incoming_message_processing(self, topic, payload):
-        #circularbuffer = CircBuff(10)
+        circularbuffer = CircBuff(10)
 
-        #circularbuffer.read()
-    #circularbuffer.write()
+        circularbuffer.read()
+        circularbuffer.write()
 
 
 
@@ -46,12 +46,7 @@ class BuffServer(BanyanBase):
         print(payload["data"])
         
     
-    #this somehow initiated a recursive infinite loop but i cannot see any plotting
-    #this is wrong
-    def idle_loop(self):
-       time.sleep(1)
-       self.receive_loop()
-       self.incoming_message_processing(self)        
+        
 
 
 def buff_server():
