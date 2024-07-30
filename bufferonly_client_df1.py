@@ -18,9 +18,9 @@ class BuffClient(BanyanBase):
         self.set_subscriber_topic('plotting')
         
         self.server_cb = CircBuff(size=501)
-        self.data_size = 10
+        self.loop_time = 0.001
         self.fig_cb, self.ax_cb = plt.subplots()
-        self.publish_payload({'data_size':self.data_size},'initiation')
+        self.publish_payload({'data_size':self.loop_time},'initiation')
         
         try:
             self.receive_loop()
@@ -32,20 +32,24 @@ class BuffClient(BanyanBase):
     def incoming_message_processing(self, topic, payload):
         
         
-        
-        self.server_cb.write(payload["data"])
-        self.server_cb.read()
+        if payload["time"] <=100:
+            self.server_cb.write(payload["data"])
+            self.server_cb.read()
         
 
-        t_, x_ = zip(*self.server_cb.read())
-        self.ax_cb.clear()
-        self.ax_cb.scatter(t_, x_,s = 1)
-        self.ax_cb.set_xlim([-10,110])
-        self.ax_cb.set_ylim([-10, 10])
-        self.fig_cb.canvas.draw()  # update figure
-        self.fig_cb.canvas.flush_events()
-        sleep(.5)
-        
+            t_, x_ = zip(*self.server_cb.read())
+            self.ax_cb.clear()
+            self.ax_cb.scatter(t_, x_,s = 1)
+            self.ax_cb.set_xlim([payload["time"]-5,payload["time"]])
+            self.ax_cb.set_ylim([-10, 10])
+            self.fig_cb.canvas.draw()  # update figure
+            self.fig_cb.canvas.flush_events()
+            sleep(.5)
+        else:
+            print("Plotting complete")
+            input("Press Enter to exit")
+            self.clean_up()
+            sys.exit(0) 
         
         
         
