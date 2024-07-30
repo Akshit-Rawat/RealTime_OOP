@@ -2,13 +2,12 @@ import sys
 from python_banyan.banyan_base import BanyanBase
 import numpy as np
 import random
-import time
 #from buffers_1 import CircBuff
 
 class BuffServer(BanyanBase):
     def __init__(self):
 
-        super().__init__(process_name = 'BuffServer',receive_loop_idle_addition= None,loop_time = 0.1)
+        super().__init__(process_name = 'BuffServer',receive_loop_idle_addition=None,loop_time = 0.001)
         
         
         self.set_subscriber_topic('initiation')
@@ -21,39 +20,33 @@ class BuffServer(BanyanBase):
             sys.exit()
 
     def incoming_message_processing(self, topic, payload):
-        #circularbuffer = CircBuff(10)
+        #server_buffer = CircBuff(payload["data_size"])
 
-        #circularbuffer.read()
-    #circularbuffer.write()
-
-
-
+        #server_buffer.read()
+        #server_buffer.write()
         
         
-        buffer = []
+
+
+
+        if topic == "initiation":
+            buffer = []
         
-        buffer = np.zeros(payload['data_size']) 
+            buffer = np.zeros(payload['data_size']) 
 
-        for i in range(len(buffer)):
-            buffer[i] = random.randint(0,10)
+            for i in range(len(buffer)):
+                buffer[i] = random.randint(0,10)
 
-        data_list = list(buffer)
+            data_list = list(buffer)
 
-        payload = {'data':data_list}
+            payload = {'data':data_list}
         
-        self.publish_payload(payload,"plotting")
-        print("Data sent")
-        print(payload["data"])
-        
-    
-    #this somehow initiated a recursive infinite loop but i cannot see any plotting
-    #this is wrong
-    def idle_loop(self):
-       time.sleep(1)
-       self.receive_loop()
-       self.incoming_message_processing(self)        
+            self.publish_payload(payload,"plotting")
+            print("Data sent")
+            print(payload["data"])
 
-
+    def loop(self):
+        self.incoming_message_processing(self)
 def buff_server():
     BuffServer()
 
