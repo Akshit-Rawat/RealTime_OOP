@@ -48,7 +48,7 @@ class BuffServer(BanyanBase):
 
             if np.abs(t % 1) <= self.dt:
                 
-                payload = {'data':cb,'time':t}
+                payload = {'data':cb}
                 self.publish_payload(payload,"plotting")
                 #server_cb.write(cb)
                 #server_cb.read()
