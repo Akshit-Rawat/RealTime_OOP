@@ -21,10 +21,10 @@ class BuffServer(BanyanBase):
             sys.exit()
 
     def incoming_message_processing(self, topic, payload):
-        circularbuffer = CircBuff(10)
+        #circularbuffer = CircBuff(10)
 
-        circularbuffer.read()
-        circularbuffer.write()
+        #circularbuffer.read()
+        #"circularbuffer.write()
 
 
 
