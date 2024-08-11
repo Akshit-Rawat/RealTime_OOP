@@ -15,14 +15,16 @@ class BuffClient(BanyanBase):
         super().__init__(process_name = 'BuffClient',loop_time=0.1,receive_loop_idle_addition=None)
         
         
-        # data creation 
         self.set_subscriber_topic('plotting')
         
-        # the circular buffer has a limit of 30 as it corresponds to storing 30 datapoints.
-        #although the server would only send 10 datapoints for every second, it is safer to take a bigger buffer
+        # the circular buffer has a limit of 20 as it corresponds to storing 20 datapoints.
+        # as the time constant selected is 0.1, the data generated for a time window of 1 second
+        #would be 10. the selection of number of data points to be generated is so to reflect the 
+        # amount of data to plotted by the client. To match the refresh time, the data size sent would be half the size of requested data, this would make
+        # data sending faster and chances of loss of data or overwritting minimizes.
         
-        #plus the canvas draw() would show all the 30 datapoints and to show new datapoints everytime, the flush events is used, so that the screen can be updated 
-         #the new model sends empty buffer, thats why it would not read anything and would throw error
+        #plus the canvas draw() would show all the 20 datapoints and to show new datapoints everytime, the flush events is used, so that the screen can be updated 
+        
         self.buff_size = 20
         self.client_fifo = CircBuff(self.buff_size)
         
