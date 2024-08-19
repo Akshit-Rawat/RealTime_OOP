@@ -17,6 +17,7 @@ class BuffClient(BanyanBase):
         
         
         self.set_subscriber_topic('plotting')
+        self.set_subscriber_topic('data_ready')
         
         # the circular buffer has a limit of 20 as it corresponds to storing 20 datapoints.
         # as the time constant selected is 0.1, the data generated for a time window of 1 second
@@ -29,11 +30,12 @@ class BuffClient(BanyanBase):
         
         self.buff_size = 20
         
-        self.client_circ = CircBuff(size = 20)
+        self.client_circ = CircBuff(size = 200)
         #self.client_fifo_o = FIFO(self.buff_size/10)
         
         self.fig_circ, self.ax_circ = plt.subplots()
-        #self.publish_payload({'size':self.buff_size/2},'request')
+        #self.publish_payload({'loop_time':0.5},'request')
+        #self.publish_payload({'loop_time':0.5},'send_data')
         
         try:
             self.receive_loop()
@@ -44,8 +46,10 @@ class BuffClient(BanyanBase):
 
     def incoming_message_processing(self, topic, payload):
         
+        if topic=='data_ready':
+            self.publish_payload({'loop_time':0.5},'send_data') 
         
-        
+
         if topic == 'plotting':
             
 
@@ -68,7 +72,7 @@ class BuffClient(BanyanBase):
 
             if payload["time"]>=10:
                 print("Plotting complete")
-                self.publish_payload({'size': self.buff_size}, 'interrupt')
+                self.publish_payload({'loop_time':0.5}, 'interrupt')
                 input("Press Enter to exit")
             
                 self.clean_up()
@@ -79,16 +83,17 @@ class BuffClient(BanyanBase):
         
         if keyboard.is_pressed('l'):
             print("Interrupt sent")
-            self.publish_payload({'size': self.buff_size}, 'interrupt')
+            self.publish_payload({'loop_time':0.5}, 'interrupt')
             self.clean_up()
             sys.exit(0)
-            
+
+           
             
         
         
         
     def callloop(self):
-        self.publish_payload({'size':self.buff_size},'request')    
+        self.publish_payload({'loop_time':0.5},'request')    
         
     
 

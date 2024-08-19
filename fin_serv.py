@@ -15,21 +15,23 @@ class BuffServer(BanyanBase):
     
     def __init__(self):
 
-        super().__init__(process_name = 'BuffServer',receive_loop_idle_addition=self.datageneration_loop,loop_time = 0.1)
-        #loop time set to 0.1 so that data generation happens every 0.1 second
-        #two topics have been created below so that according to topic data streaming can either be stopped or start 
-        self.set_subscriber_topic('request') #initiates the data streaming
-        self.set_subscriber_topic('interrupt') # disrupts the datastreaming
-        self.server_fifo = FIFO(1) # the size of the buffer is to set to temporal window of 1, maximum samples it can hold would be equivalent to 10 as the time constant is set to 0.1
-        self.t = 0   # initialisation of both time stamps and sample value
+        super().__init__(process_name = 'BuffServer',receive_loop_idle_addition=None,loop_time = 0.01)
+        
+        
+        self.set_subscriber_topic('request')
+        self.set_subscriber_topic('interrupt')
+        self.set_subscriber_topic('send_data')
+        self.server_fifo = FIFO(1)
+        self.t = 0 
         self.xt = 0
-        #self.new_sample=0
-        self.topic_=False # a boolean logic implemented to start and stop the data generation loop 
-        self.topicc=[] # to check how many samples would be sent per topic call
+        self.new_sample=0
+        self.topic_=False
+        self.topicc=[]
+        self.loop_time = 0
         
         
-        try:   
-            self.receive_loop()  #receive loop for accepting the topic from client
+        try:
+            self.receive_loop()
             
         except KeyboardInterrupt:
             self.clean_up()
@@ -37,28 +39,33 @@ class BuffServer(BanyanBase):
 
     def incoming_message_processing(self, topic, payload):
         
-        
+        self.loop_time=payload["loop_time"]
 
+        self.topicc.append(topic)
+        print(self.topicc)
         
-        
-        if topic=='request':        # when topic is request, the self.topic_ is set to True which initiates the if condition in the data generation looop
+        if topic=='request':
             self.topic_ = True
-            self.topicc.append(topic)  # topic request accepted and saved in the topic collection list
-            print(self.topicc)
+            self.data_gen()
+
+            self.publish_payload({'loop_time':0.5},"data_ready")
+            
+            
             
         
-         
-            cb_data = self.server_fifo.read() # collected samples from the buffer is read and made ready to be submitted as payload
+        if topic=='send_data':
+            cb_data = self.server_fifo.read()
             
             
             print(cb_data)
-            if not cb_data:  # this is done because, as soon as the request is sent the buffer is read empty therefore it caused an error in the client side as it sends an empty list, which is for a cicular buffer not valid
-                return         # does not return anything but it executes and lets the function progress to next phase
+            if not cb_data:
+                return
             else:
-                payload = {'data':cb_data,'time':self.t} #
+                payload = {'data':cb_data,'time':self.t}
                 self.publish_payload(payload,"plotting")
                 self.server_fifo.clear()
-                self.topicc.clear()
+                self.topicc.clear() 
+            
         
            
             
@@ -80,30 +87,42 @@ class BuffServer(BanyanBase):
     #works quite well for 0.5 loop
     
     
-    def datageneration_loop(self):
+    #def datageneration_loop(self):
 
         
-            if self.topic_:
-                (self.t,self.xt) = generate_next_sample(current_sample=(self.t,self.xt),tau=0.1,sigma=0.5)
-                #self.new_sample =(self.t,self.xt)
-                #print('added {} at t={}s'.format(self.xt,self.t))
-                self.server_fifo.write((self.t,self.xt), current_time=self.t)
+    #        if self.topic_:
+    #            (self.t,self.xt) = generate_next_sample(current_sample=(self.t,self.xt),tau=0.1,sigma=0.5)
+    #            self.new_sample =(self.t,self.xt)
+    #            #print('added {} at t={}s'.format(self.xt,self.t))
+                
                 
                 #self.new_sample=None 
             #explanation for above: as the loop time was same(0.5), the buffer was getting
             #adequate time to reset or clear out the old data, therefore the tuple value was able to update
             #however as the loop time was decreased, the tuple object was not updating, therefore the buffer was being overwritten by the same value again and again
             #hence reseting the sample by putting none solved the overwrriting issue.
-            else:
-                return 
+    #        else:
+    #            return 
                 
                 
                     
                         
 #every 0.5 second the reading and clearing of data occurs and sending too
                
-                    
-        
+    def data_gen(self):
+
+        while True:  
+            (self.t,self.xt) = generate_next_sample(current_sample=(self.t,self.xt),tau=0.1,sigma=0.5)
+            if len(self.server_fifo.read())<=self.loop_time*10:
+                self.server_fifo.write((self.t,self.xt), current_time=self.t)
+                print(self.server_fifo.read())
+            else:
+                break    
+
+
+            
+
+            
                 
            
 
