@@ -15,7 +15,7 @@ class BuffServer(BanyanBase):
     
     def __init__(self):
 
-        super().__init__(process_name = 'BuffServer',receive_loop_idle_addition=self.datageneration_loop,loop_time = 0.1)
+        super().__init__(process_name = 'BuffServer',receive_loop_idle_addition=self.datageneration_loop,loop_time = 0.1) # super function is used for inheritence from the base class which is the banyan_base
         #loop time set to 0.1 so that data generation happens every 0.1 second
         #two topics have been created below so that according to topic data streaming can either be stopped or start 
         self.set_subscriber_topic('request') #initiates the data streaming
@@ -52,56 +52,57 @@ class BuffServer(BanyanBase):
             
             
             print(cb_data)
-            if not cb_data:  # this is done because, as soon as the request is sent the buffer is read empty therefore it caused an error in the client side as it sends an empty list, which is for a cicular buffer not valid
+            if not cb_data:  # this is done because, as soon as the request is sent, the buffer is read empty therefore, it caused an error in the client side as it sends an empty list, which is for a cicular buffer not valid
                 return         # does not return anything but it executes and lets the function progress to next phase
             else:
-                payload = {'data':cb_data,'time':self.t} #
-                self.publish_payload(payload,"plotting")
-                self.server_fifo.clear()
-                self.topicc.clear()
+                payload = {'data':cb_data,'time':self.t} # collected samples are now packed in to payload. "data" has both sample time stamp and sample amplitude, with it is "time" key, which will hold time stamps as well
+                self.publish_payload(payload,"plotting") # payload is published using plotting topic as the subsriber topic of client.
+                self.server_fifo.clear() # fifo buffer and topic collector list are cleared so that new samples can be added and avoid overflow/overwriting of data 
+                self.topicc.clear() 
         
            
             
             
                 
-        elif topic == 'interrupt':
+        elif topic == 'interrupt': # when topic interrupt is accepted, then the self topic boolean turns to false, which changes the state of the idle loop and stops it from further generating more data
             self.topic_ = False
             print("client interrupt")
             self.server_fifo.clear()
+            input("Press Enter to exit")
+            
+            self.clean_up()
+            sys.exit(0)
 
         
              
-       # if i keep writing function outside and then according to topic it registers the data     
-            
-                
-      #or writing can be inside and whenever the topic gets triggered the sample generator works
-      # and iterates and as the self function should update anyywhere
+       
     
-    #works quite well for 0.5 loop
-    
-    
-    def datageneration_loop(self):
+    def datageneration_loop(self): # thisis the receive addition idle loop, and it serves the function of data generation
 
         
-            if self.topic_:
-                (self.t,self.xt) = generate_next_sample(current_sample=(self.t,self.xt),tau=0.1,sigma=0.5)
-                #self.new_sample =(self.t,self.xt)
-                #print('added {} at t={}s'.format(self.xt,self.t))
-                self.server_fifo.write((self.t,self.xt), current_time=self.t)
+            if self.topic_: # when the state changes to true, whcih happens when topic reques is received by the server. the data generation loop gets initiated 
+                (self.t,self.xt) = self.generate_next_sample(current_sample=(self.t,self.xt),tau=0.01,sigma=1) # the generate next sample function generates new samples each time the idle loop runs.
                 
-                #self.new_sample=None 
-            #explanation for above: as the loop time was same(0.5), the buffer was getting
-            #adequate time to reset or clear out the old data, therefore the tuple value was able to update
-            #however as the loop time was decreased, the tuple object was not updating, therefore the buffer was being overwritten by the same value again and again
-            #hence reseting the sample by putting none solved the overwrriting issue.
-            else:
-                return 
+                self.server_fifo.write((self.t,self.xt), current_time=self.t) # the fifo buffer writes the generated samples.
+                print(self.topic_)
                 
+            else: # this condition is met when the server receives the topic 'interrupt'. It breaks the if condition, subsequently breaking the gneration of new samples due to loop
+                return  print(self.topic_)
                 
+          # once the topic 'request' gets received, the data as much as collected over the period of 0.5s in buffer, get sent off to the client. Request acts like a trigger to send of the collected data.      
                     
-                        
-#every 0.5 second the reading and clearing of data occurs and sending too
-               
+ 
+    def generate_next_sample(self,current_sample = None, tau=.01,sigma=1): # this is the sample generator method/function
+        if current_sample is None:
+            return 0, 0        # when no inital values assigned
+        else:
+            T = invgauss(mu=tau)  # tau is the mean of inversgauss
+            dt = T.rvs() #  this function picks the random value from the distribution
+            X = norm(loc=0, scale=sigma)
+            t, xt = current_sample # this way the sample gnerator gets updated with each loop
+            t += dt   #these update the t and xt values
+            xt += X.rvs() * sqrt(dt)  
+            return t, xt            
                     
         
                 
@@ -109,17 +110,7 @@ class BuffServer(BanyanBase):
 
             
 
-def generate_next_sample(current_sample = None, tau=.01,sigma=1):
-    if current_sample is None:
-        return 0, 0
-    else:
-        T = invgauss(mu=tau)
-        dt = T.rvs()
-        X = norm(loc=0, scale=sigma)
-        t, xt = current_sample
-        t += dt
-        xt += X.rvs() * sqrt(dt)
-        return t, xt  
+
 
         
      
@@ -132,11 +123,6 @@ if __name__ == '__main__':
     buff_server()
 
 
-
-#i think there might be but let say there is no need of 
-
-
-#the thing which worked was using the datageneration loop in the receive loop idle addition but the reverse shall work
 
 
 
